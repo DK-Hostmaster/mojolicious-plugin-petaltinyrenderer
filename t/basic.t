@@ -5,27 +5,21 @@ use Mojolicious::Lite;
 use Test::Mojo;
 
 plugin 'PetalTinyRenderer';
-app->renderer->default_handler( 'tal' );
 app->defaults(foo => "bar");
 
 get '/inline' => sub {
-    shift->render(inline => '<span tal:replace="foo"/>');
+    shift->render(inline => "<span tal:replace='foo'/>\n", handler => 'tal');
 };
-get '/data';
-get '/ns';
-get '/file';
-get '/missing';
-get '/h';
-get '/c';
+for ( qw/ data ns file missing h c / ) {
+    get "/$_";
+}
 
 my $t = Test::Mojo->new;
-$t->get_ok('/inline') ->status_is(200)->content_is('bar');
-$t->get_ok('/data')   ->status_is(200)->content_is("bar\n");
-$t->get_ok('/ns')     ->status_is(200)->content_is("<div>bar</div>\n");
-$t->get_ok('/file')   ->status_is(200)->content_is("bar\n");
+for ( qw/ inline data file h c / ) {
+    $t->get_ok("/$_")->status_is(200)->content_is("bar\n");
+}
+$t->get_ok('/ns')->status_is(200)->content_is("<div>bar</div>\n");
 $t->get_ok('/missing')->status_is(404);
-$t->get_ok('/h')      ->status_is(200)->content_is("bar\n");
-$t->get_ok('/c')      ->status_is(200)->content_is("bar\n");
 
 done_testing();
 
