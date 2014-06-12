@@ -1,0 +1,110 @@
+NAME
+    Mojolicious::Plugin::PetalTinyRenderer - Petal::Tiny renderer plugin
+
+SYNOPSIS
+      # Mojolicious
+      $self->plugin('PetalTinyRenderer');
+
+      # Mojolicious::Lite
+      plugin 'PetalTinyRenderer';
+
+DESCRIPTION
+    Mojolicious::Plugin::PetalTinyRenderer is a renderer for templates
+    written for Petal::Tiny, which is a Perl implementation of the Template
+    Attribute Language (TAL).
+
+OPTIONS
+    Mojolicious::Plugin::PetalTinyRenderer supports the following option.
+
+  name
+      # Mojolicious::Lite
+      plugin PetalTinyRenderer => {name => 'petal'};
+
+    Handler name, defaults to "tal".
+
+STASH
+    The stash is directly available in the templates, see the use of foo in
+    the example.
+
+  h
+    Helpers are available via the "h" entry in the stash.
+
+     <a tal:attributes="href h/url_for --index" href="/">go back to index</a>
+
+  c
+    The current controller instance can be accessed as "c".
+
+     I see you are requesting a document from 
+     <span tal:replace="c/req/headers/host">Lorem ipsum</span>.
+
+USEFUL PATTERNS
+    Call helper-function without generating html (-- prefixes a literal
+    string):
+
+     <span tal:condition="true:h/layout --default" tal:omit-tag="" />
+
+    Use a temporary variable to hold dynamically generated string for helper
+    function:
+
+     <span tal:define="mytitle h/localization --login"
+           tal:condition="true:h/title mytitle"
+           tal:omit-tag="" />
+
+    Insert styled paragraph with error-message, if any (the structure
+    keyword means don't escape returned html):
+
+     <p style="color:red" tal:condition="true:message" tal:content="structure message">
+       Error message
+     </p>
+
+    Include other action/template:
+
+     <span tal:replace="structure h/include --example/welcome" />
+
+    See Petal::Tiny for more.
+
+    Author's observation: If you need to write very complex TAL-constructs,
+    maybe you should reconsider what belongs in the controller and what
+    belongs in the template. TAL seems to be very good at exposing this
+    anti-pattern.
+
+EXAMPLE
+     use Mojolicious::Lite;
+
+     plugin 'PetalTinyRenderer';
+
+     get '/' => sub {
+         my $self = shift;
+         $self->stash( foo => [ 1,2,3 ] );
+         $self->render('index');
+     };
+
+     app->start;
+
+     __DATA__
+
+     @@ layouts/default.html.tal
+     <!DOCTYPE html>
+     <html>
+       <head><title tal:content="title">Lorem</title></head>
+       <body tal:content="structure h/content">Ipsum</body>
+     </html>
+
+     @@ index.html.tal
+     <span tal:condition="true:h/layout --default" tal:omit-tag="" />
+     <span tal:condition="true:h/title --Welcome" tal:omit-tag="" />
+
+     <p tal:repeat="i foo"><span tal:replace="i"/>: Welcome to the PetalTinyRenderer plugin!</p>
+
+SEE ALSO
+    Petal::Tiny, Mojolicious, Mojolicious::Guides, <http://mojolicio.us>.
+
+AUTHOR
+    Lars Balker <lars@balker.dk>
+
+COPYRIGHT AND LICENSE
+    This software is copyright (c) 2014 by DK Hostmaster A/S.
+
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
+
