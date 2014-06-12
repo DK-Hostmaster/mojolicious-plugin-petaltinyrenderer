@@ -17,8 +17,7 @@ sub _petal {
     my ($renderer, $c, $output, $options) = @_;
 
     my $inline = $options->{inline};
-    my $name   = $renderer->template_name($options);
-    $name = "inline" if defined $inline;
+    my $name   = defined $inline ? "inline" : $renderer->template_name($options);
     return undef unless defined $name;
 
     $$output = '';
