@@ -1,7 +1,6 @@
 package Mojolicious::Plugin::PetalTinyRenderer;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use Mojo::Util qw(encode md5_sum);
 use Petal::Tiny;
 
 our $VERSION = '0.01';
@@ -19,7 +18,7 @@ sub _petal {
 
     my $inline = $options->{inline};
     my $name   = $renderer->template_name($options);
-    $name = md5_sum encode($options->{encoding}, $inline) if defined $inline;
+    $name = "inline" if defined $inline;
     return undef unless defined $name;
 
     $$output = '';
