@@ -1,9 +1,8 @@
 package Mojolicious::Plugin::PetalTinyRenderer;
+
 use Mojo::Base 'Mojolicious::Plugin';
 
 use Petal::Tiny;
-
-our $VERSION = '0.01';
 
 my $tal_ns = q{xmlns:tal="http://purl.org/petal/1.0/"};
 
