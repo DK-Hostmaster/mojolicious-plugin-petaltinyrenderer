@@ -6,14 +6,17 @@ use Petal::Tiny;
 
 my $tal_ns = q{xmlns:tal="http://purl.org/petal/1.0/"};
 
+__PACKAGE__->attr('config');
+
 sub register {
     my ($self, $app, $conf) = @_;
+    $self->config($conf);
 
-    $app->renderer->add_handler($conf->{name} || 'tal' => \&_petal);
+    $app->renderer->add_handler($conf->{name} || 'tal' => sub { $self->_petal(@_) } );
 }
 
 sub _petal {
-    my ($renderer, $c, $output, $options) = @_;
+    my ($self, $renderer, $c, $output, $options) = @_;
 
     my $inline = $options->{inline};
     my $name   = defined $inline ? "inline" : $renderer->template_name($options);
@@ -31,7 +34,9 @@ sub _petal {
         if (defined(my $path = $renderer->template_path($options))) {
             $log->debug(qq{Rendering template "$name".});
 
-            if (open my $file, "<", $path) {
+            my $encoding = $self->config->{encoding} // ":encoding(UTF-8)";
+
+            if (open my $file, "<$encoding", $path) {
                 my $xml = join "", <$file>;
                 $$output = _render_xml($xml, $c);
                 close $file;
@@ -161,6 +166,10 @@ option.
   plugin PetalTinyRenderer => {name => 'petal'};
 
 Handler name, defaults to C<tal>.
+
+=head2 encoding
+
+Encoding of the template-files as supplied to C<open>, defaults to C<:encoding(UTF-8)>.
 
 =head1 STASH
 
