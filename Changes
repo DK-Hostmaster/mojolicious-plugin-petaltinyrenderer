@@ -1,0 +1,4 @@
+Revision history for Perl extension Mojo::Plugin::PetalTinyRenderer
+
+{{$NEXT}}
+        - Added support for Mojo::Collection every place Petal::Tiny expressions expect an array-ref

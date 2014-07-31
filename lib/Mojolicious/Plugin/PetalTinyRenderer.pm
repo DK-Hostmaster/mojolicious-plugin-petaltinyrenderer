@@ -2,8 +2,6 @@ package Mojolicious::Plugin::PetalTinyRenderer;
 
 use Mojo::Base 'Mojolicious::Plugin';
 
-use Petal::Tiny;
-
 my $tal_ns = q{xmlns:tal="http://purl.org/petal/1.0/"};
 
 __PACKAGE__->attr('config');
@@ -28,7 +26,7 @@ sub _petal {
 
     if (defined $inline) {
         $log->debug(qq{Rendering inline template "$name".});
-        $$output = _render_xml($inline, $c);
+        $$output = $self->_render_xml($inline, $c);
     }
     else {
         if (defined(my $path = $renderer->template_path($options))) {
@@ -38,7 +36,7 @@ sub _petal {
 
             if (open my $file, "<$encoding", $path) {
                 my $xml = join "", <$file>;
-                $$output = _render_xml($xml, $c);
+                $$output = $self->_render_xml($xml, $c);
                 close $file;
             }
             else {
@@ -48,7 +46,7 @@ sub _petal {
         }
         elsif (my $d = $renderer->get_data_template($options)) {
             $log->debug(qq{Rendering template "$name" from DATA section.});
-            $$output = _render_xml($d, $c);
+            $$output = $self->_render_xml($d, $c);
         }
         else {
             $log->debug(qq{Template "$name" not found.});
@@ -60,7 +58,7 @@ sub _petal {
 }
 
 sub _render_xml {
-    my ($xml, $c) = @_;
+    my ($self, $xml, $c) = @_;
 
     my $deldiv = 0;
     if ($xml !~ /\bxmlns:/) {
@@ -68,7 +66,7 @@ sub _render_xml {
         $deldiv = 1;
     }
 
-    my $template = Petal::Tiny->new($xml);
+    my $template = Petal::Tiny::_Mojo->new($xml);
 
     my $helper = Mojolicious::Plugin::PetalTinyRenderer::Helper->new(ctx => $c);
     my $html = $template->process(%{$c->stash}, c => $c, h => $helper);
@@ -84,9 +82,23 @@ sub _render_xml {
 1;
 
 package
+  Petal::Tiny::_Mojo;
+
+use Mojo::Base 'Petal::Tiny';
+use Scalar::Util 'blessed';
+
+sub reftype {
+    my ($self, $obj) = @_;
+    return 'ARRAY' if blessed $obj and $obj->isa('Mojo::Collection');
+    return $self->SUPER::reftype($obj);
+}
+
+1;
+
+package
   Mojolicious::Plugin::PetalTinyRenderer::Helper;
 
-use base 'Mojo::Base';
+use Mojo::Base -base;
 
 our $AUTOLOAD;
 
@@ -213,6 +225,10 @@ Include other action/template:
 
  <span tal:replace="structure h/include --example/welcome" />
 
+You can loop over Mojo::Collections:
+
+ <li tal:repeat="key some_mojo_collection" tal:content="key" />
+
 See L<Petal::Tiny> for more.
 
 Author's observation: If you need to write very complex
@@ -228,7 +244,7 @@ at exposing this anti-pattern.
 
  get '/' => sub {
      my $self = shift;
-     $self->stash( foo => [ 1,2,3 ] );
+     $self->stash( foo => Mojo::Collection->new(1,2,3) );
      $self->render('index');
  };
 
