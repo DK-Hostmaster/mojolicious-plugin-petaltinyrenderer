@@ -1,6 +1,7 @@
 package Mojolicious::Plugin::PetalTinyRenderer;
 
 use Mojo::Base 'Mojolicious::Plugin';
+use Try::Tiny;
 
 my $tal_ns = q{xmlns:tal="http://purl.org/petal/1.0/"};
 
@@ -26,7 +27,7 @@ sub _petal {
 
     if (defined $inline) {
         $log->debug(qq{Rendering inline template "$name".});
-        $$output = $self->_render_xml($inline, $c);
+        $$output = $self->_render_xml($inline, $c, $name);
     }
     else {
         if (defined(my $path = $renderer->template_path($options))) {
@@ -36,7 +37,7 @@ sub _petal {
 
             if (open my $file, "<$encoding", $path) {
                 my $xml = join "", <$file>;
-                $$output = $self->_render_xml($xml, $c);
+                $$output = $self->_render_xml($xml, $c, $name);
                 close $file;
             }
             else {
@@ -46,7 +47,7 @@ sub _petal {
         }
         elsif (my $d = $renderer->get_data_template($options)) {
             $log->debug(qq{Rendering template "$name" from DATA section.});
-            $$output = $self->_render_xml($d, $c);
+            $$output = $self->_render_xml($d, $c, $name);
         }
         else {
             $log->debug(qq{Template "$name" not found.});
@@ -58,7 +59,7 @@ sub _petal {
 }
 
 sub _render_xml {
-    my ($self, $xml, $c) = @_;
+    my ($self, $xml, $c, $name) = @_;
 
     my $deldiv = 0;
     if ($xml !~ /\bxmlns:/) {
@@ -69,7 +70,29 @@ sub _render_xml {
     my $template = Petal::Tiny::_Mojo->new($xml);
 
     my $helper = Mojolicious::Plugin::PetalTinyRenderer::Helper->new(ctx => $c);
-    my $html = $template->process(%{$c->stash}, c => $c, h => $helper);
+
+    my $html;
+    try {
+        $html = $template->process(%{$c->stash}, c => $c, h => $helper);
+    }
+    catch {
+        my $validator;
+        eval "use XML::Validate; \$validator = XML::Validate->new(Type => 'LibXML');";
+        if ($validator) {
+            $xml =~ s/<!DOCTYPE.*?>//;
+            if ($validator->validate($xml)) {
+                die "Petal::Tiny didn't like the xml in $name, but weirdly XML::Validate did.\n\n$_";
+            }
+            else {
+                my $e       = $validator->last_error;
+                my $message = $e->{message} // "";
+                die "Petal::Tiny didn't like the xml in $name. XML::Validate reports:\n\n$message";
+            }
+        }
+        else {
+            die "Petal::Tiny didn't like the xml in $name. Install XML::Validate and XML::LibXML for better diagnostics.\n\n$_";
+        }
+    };
 
     if ($deldiv) {
         $html =~ s,\A<div>,,;
