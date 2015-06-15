@@ -81,16 +81,16 @@ sub _render_xml {
         if ($validator) {
             $xml =~ s/<!DOCTYPE.*?>//;
             if ($validator->validate($xml)) {
-                die "Petal::Tiny didn't like the xml in $name, but weirdly XML::Validate did.\n\n$_";
+                die "Petal::Tiny blew up handling '$name', and XML::Validate reports the XML is fine.\n\n$_";
             }
             else {
                 my $e       = $validator->last_error;
                 my $message = $e->{message} // "";
-                die "Petal::Tiny didn't like the xml in $name. XML::Validate reports:\n\n$message";
+                die "Petal::Tiny blew up handling '$name', and XML::Validate reports:\n\n$message";
             }
         }
         else {
-            die "Petal::Tiny didn't like the xml in $name. Install XML::Validate and XML::LibXML for better diagnostics.\n\n$_";
+            die "Petal::Tiny blew up handling '$name'. Install XML::Validate and XML::LibXML for better diagnostics.\n\n$_";
         }
     };
 
